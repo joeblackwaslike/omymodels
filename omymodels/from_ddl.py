@@ -15,16 +15,17 @@ from omymodels.models.enum import core as enum
 def get_tables_information(
     ddl: Optional[str] = None, ddl_file: Optional[str] = None
 ) -> List[Dict]:
-    if not ddl_file and not ddl:
+    if ddl_file or ddl:
+        return (
+            DDLParser(ddl).run(group_by_type=True)
+            if ddl
+            else parse_from_file(ddl_file, group_by_type=True)
+        )
+    else:
         raise ValueError(
             "You need to provide one of above argument: ddl with string that "
             "contains ddl or ddl_file that contains path to ddl file to parse"
         )
-    if ddl:
-        tables = DDLParser(ddl).run(group_by_type=True)
-    elif ddl_file:
-        tables = parse_from_file(ddl_file, group_by_type=True)
-    return tables
 
 
 def create_models(
@@ -62,30 +63,24 @@ def create_models(
 
 
 def snake_case(string: str) -> str:
-    if string.lower() in ['id']:
+    if string.lower() in {'id'}:
         return string.lower()
     return re.sub(r"(?<!^)(?=[A-Z])", "_", string).lower()
 
 
 def convert_ddl_to_models(data: Dict, no_auto_snake_case: bool) -> Dict[str, list]:
-    final_data = {"tables": [], "types": []}
     tables = []
     for table in data["tables"]:
         for column in table["columns"]:
             if not no_auto_snake_case:
                 column["name"] = snake_case(column["name"])
         tables.append(TableMeta(**table))
-    final_data["tables"] = tables
-    _types = []
-    for _type in data["types"]:
-        _types.append(Type(**_type))
-    final_data["types"] = _types
-    return final_data
+    _types = [Type(**_type) for _type in data["types"]]
+    return {"tables": tables, "types": _types}
 
 
 def save_models_to_file(models: str, dump_path: str) -> None:
-    folder = os.path.dirname(dump_path)
-    if folder:
+    if folder := os.path.dirname(dump_path):
         os.makedirs(folder, exist_ok=True)
     with open(dump_path, "w+") as f:
         f.write(models)
@@ -122,8 +117,7 @@ def generate_models_file(
         header += generator.create_header(data["tables"], schema=schema_global)
     else:
         models_type = "enum"
-    output = render_jinja2_template(models_type, models_str, header)
-    return output
+    return render_jinja2_template(models_type, models_str, header)
 
 
 def prepare_data(item: Dict) -> Dict:

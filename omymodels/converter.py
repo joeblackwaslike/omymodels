@@ -8,18 +8,17 @@ from omymodels.models.enum import core as enum
 
 
 def get_primary_keys(columns: List[Dict]) -> List[str]:
-    primary_keys = []
-    for column in columns:
-        if column.get("properties", {}).get("primary_key"):
-            primary_keys.append(column["name"])
-    return primary_keys
+    return [
+        column["name"]
+        for column in columns
+        if column.get("properties", {}).get("primary_key")
+    ]
 
 
 def prepare_columns_data(columns: List[Dict]) -> List[Dict]:
     for column in columns:
-        if column["type"] is None:
-            if column["default"]:
-                column["type"] = type(column["default"]).__name__
+        if column["type"] is None and column["default"]:
+            column["type"] = type(column["default"]).__name__
     return columns
 
 
@@ -60,5 +59,4 @@ def convert_models(model_from: str, models_type: str = "gino") -> str:
     else:
         header += enum.create_header(generator.enum_imports)
         models_type = "enum"
-    output = render_jinja2_template(models_type, models_str, header)
-    return output
+    return render_jinja2_template(models_type, models_str, header)

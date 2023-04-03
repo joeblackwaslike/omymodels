@@ -47,11 +47,11 @@ class ModelGenerator:
         if _type == "UUID":
             self.uuid_import = True
         column_str = column_str.format(arg_name=column.name, type=_type)
-        if column.default and defaults_off is False:
+        if column.default and not defaults_off:
             column_str = self.add_column_default(column_str, column)
         if (
             column.nullable
-            and not (column.default and not defaults_off)
+            and (not column.default or defaults_off)
             and not defaults_off
         ):
             column_str += dt.dataclass_default_attr.format(default=None)
@@ -77,10 +77,7 @@ class ModelGenerator:
         *args,
         **kwargs,
     ) -> str:
-        model = ""
-
-        # mean one model one table
-        model += "\n\n"
+        model = "" + "\n\n"
         # generate class name
         model += (
             dt.dataclass_class.format(
@@ -111,8 +108,7 @@ class ModelGenerator:
         if self.datetime_import:
             header += dt.datetime_import + "\n"
         if self.typing_imports:
-            _imports = list(self.typing_imports)
-            _imports.sort()
+            _imports = sorted(self.typing_imports)
             header += dt.typing_imports.format(typing_types=", ".join(_imports)) + "\n"
         if self.additional_imports:
             self.additional_imports = f', {",".join(self.additional_imports)}'

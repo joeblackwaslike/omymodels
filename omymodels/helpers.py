@@ -15,19 +15,17 @@ def pluralize(word: str) -> str:
         return word
 
     if re.search("[sxz]$", word):
-        word = re.sub("$", "es", word)
+        return re.sub("$", "es", word)
     elif re.search("[^aeioudgkprt]h$", word):
-        word = re.sub("$", "es", word)
+        return re.sub("$", "es", word)
     elif re.search("[aeiou]y$", word):
-        word = re.sub("y$", "ies", word)
+        return re.sub("y$", "ies", word)
     else:
-        word = word + "s"
-
-    return word
+        return f"{word}s"
 
 
 def get_singular_name(table_name: Text, exceptions: Optional[List] = None) -> Text:
-    endings = {"ies": lambda x: x[:-3] + "y", "es": lambda x: x[:-1]}
+    endings = {"ies": lambda x: f"{x[:-3]}y", "es": lambda x: x[:-1]}
     if not exceptions:
         exceptions = []
     exception_endings = [x for x in exceptions if table_name.endswith(x)]
@@ -38,10 +36,7 @@ def get_singular_name(table_name: Text, exceptions: Optional[List] = None) -> Te
                 model_name = endings[key](table_name)
                 break
     if not model_name:
-        if table_name.endswith("s"):
-            model_name = table_name[:-1]
-        else:
-            model_name = table_name
+        model_name = table_name[:-1] if table_name.endswith("s") else table_name
     return model_name
 
 
@@ -49,14 +44,14 @@ def create_class_name(
     table_name: Text, singular: bool = False, exceptions: Optional[List] = None
 ) -> Text:
     """create correct class name for table in PascalCase"""
-    if singular:
-        model_name = get_singular_name(table_name)
-    else:
-        model_name = table_name
-    if "_" not in table_name or "-" not in table_name:
-        if table_name.lower() != table_name and table_name.upper() != table_name:
-            # mean already table in PascalCase
-            return pascal_case(table_name)
+    model_name = get_singular_name(table_name) if singular else table_name
+    if (
+        ("_" not in table_name or "-" not in table_name)
+        and table_name.lower() != table_name
+        and table_name.upper() != table_name
+    ):
+        # mean already table in PascalCase
+        return pascal_case(table_name)
 
     model_name = model_name.replace("-", "_").replace("__", "_")
     previous_symbol = None
@@ -100,6 +95,4 @@ def add_custom_types_to_generator(types: List[Type], generator: object) -> objec
 
 
 def datetime_now_check(string: str) -> bool:
-    if "now" in string or "current_timestamp" in string:
-        return True
-    return False
+    return "now" in string or "current_timestamp" in string

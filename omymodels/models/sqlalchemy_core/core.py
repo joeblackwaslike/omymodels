@@ -46,7 +46,7 @@ class ModelGenerator:
             self.no_need_par = True
         if column_data.size:
             column_type = self.add_size_to_column_type(column_data.size)
-        elif self.no_need_par is False:
+        elif not self.no_need_par:
             column_type += "()"
         if "[" in column_data.type:
             self.postgresql_dialect_cols.add("ARRAY")
@@ -70,13 +70,11 @@ class ModelGenerator:
                     self.state.add("func")
                 elif "'" not in column_data.default:
                     column_data.default = f"'{column_data.default}'"
-            else:
-                if "'" not in column_data.default:
-                    column_data.default = f"'{column_data.default}'"
+            elif "'" not in column_data.default:
+                column_data.default = f"'{column_data.default}'"
         else:
             column_data.default = f"'{str(column_data.default)}'"
-        default_property = st.default.format(default=column_data.default)
-        return default_property
+        return st.default.format(default=column_data.default)
 
     def get_column_attributes(
         self,
@@ -86,10 +84,7 @@ class ModelGenerator:
         schema_global: bool,
     ) -> List[str]:
         properties = []
-        if (
-            column_data.type.lower() == "serial"
-            or column_data.type.lower() == "bigserial"
-        ):
+        if column_data.type.lower() in ["serial", "bigserial"]:
             properties.append(st.autoincrement)
         if column_data.references:
             properties.append(
@@ -106,20 +101,20 @@ class ModelGenerator:
         if column_data.unique:
             properties.append(st.unique)
         if "columns" in table_data.alter:
-            for alter_column in table_data.alter["columns"]:
+            properties.extend(
+                self.column_reference(
+                    alter_column["name"],
+                    alter_column["references"],
+                    schema_global,
+                )
+                for alter_column in table_data.alter["columns"]
                 if (
                     alter_column["name"] == column_data.name
                     and not alter_column["constraint_name"]
                     and alter_column["references"]
                     and not column_data.references
-                ):
-                    properties.append(
-                        self.column_reference(
-                            alter_column["name"],
-                            alter_column["references"],
-                            schema_global,
-                        )
-                    )
+                )
+            )
         return properties
 
     @staticmethod
@@ -203,14 +198,12 @@ class ModelGenerator:
         model = ""
         # mean this is a table
         table = data
-        columns = ""
         schema_global = kwargs["schema_global"]
 
-        for column in table.columns:
-            columns += self.generate_column(
-                column, table.primary_key, table, schema_global
-            )
-
+        columns = "".join(
+            self.generate_column(column, table.primary_key, table, schema_global)
+            for column in table.columns
+        )
         table_var_name = table.name.replace("-", "_")
 
         indexes = []
@@ -225,9 +218,9 @@ class ModelGenerator:
             table_var=table_var_name,
             table_name=table.name,
             columns=columns,
-            schema=""
-            if not table.table_schema
-            else st.schema.format(schema_name=table.table_schema),
+            schema=st.schema.format(schema_name=table.table_schema)
+            if table.table_schema
+            else "",
             constraints=", ".join(constraints) if constraints else "",
         )
         for index in indexes:
