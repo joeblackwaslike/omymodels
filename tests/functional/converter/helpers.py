@@ -29,8 +29,13 @@ def generate_params_for_converter(ddl: str) -> List[Tuple[str]]:
     params = []
     for base_model_name, code in models_from_ddl.items():
         other_models = [model for model in supported_models if model != base_model_name]
-        for target_model in other_models:
-            params.append(
-                (base_model_name, target_model, code, models_from_ddl.get(target_model))
+        params.extend(
+            (
+                base_model_name,
+                target_model,
+                code,
+                models_from_ddl.get(target_model),
             )
+            for target_model in other_models
+        )
     return params

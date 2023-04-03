@@ -32,9 +32,8 @@ class ModelGenerator(GeneratorBase):
                     self.state.add("func")
                 elif "'" not in column_data.default:
                     column_data.default = f"'{column_data.default}'"
-            else:
-                if "'" not in column_data.default:
-                    column_data.default = f"'{column_data.default}'"
+            elif "'" not in column_data.default:
+                column_data.default = f"'{column_data.default}'"
         else:
             column_data.default = f"'{str(column_data.default)}'"
         column += st.default.format(default=column_data.default)

@@ -77,6 +77,5 @@ class ModelGenerator:
         return types_str
 
     def create_header(self) -> str:
-        self.enum_imports = list(self.enum_imports)
-        self.enum_imports.sort()
+        self.enum_imports = sorted(self.enum_imports)
         return enum_import.format(enums=", ".join(self.enum_imports)) + "\n"

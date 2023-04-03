@@ -12,7 +12,7 @@ from omymodels.types import datetime_types
 class ModelGenerator:
     def __init__(self):
 
-        self.imports = set([pt.base_model])
+        self.imports = {pt.base_model}
         self.types_for_import = ["Json"]
         self.datetime_import = False
         self.typing_imports = set()
@@ -23,10 +23,7 @@ class ModelGenerator:
     def add_custom_type(self, target_type):
 
         column_type = self.custom_types.get(target_type, None)
-        _type = None
-        if isinstance(column_type, tuple):
-            _type = column_type[1]
-        return _type
+        return column_type[1] if isinstance(column_type, tuple) else None
 
     def get_not_custom_type(self, column: Column):
         _type = None
@@ -49,21 +46,18 @@ class ModelGenerator:
 
     def generate_attr(self, column: Dict, defaults_off: bool) -> str:
 
-        _type = None
-
         if column.nullable:
             self.typing_imports.add("Optional")
             column_str = pt.pydantic_optional_attr
         else:
             column_str = pt.pydantic_attr
-        if self.custom_types:
-            _type = self.add_custom_type(column.type)
+        _type = self.add_custom_type(column.type) if self.custom_types else None
         if not _type:
             _type = self.get_not_custom_type(column)
 
         column_str = column_str.format(arg_name=column.name, type=_type)
 
-        if column.default and defaults_off is False:
+        if column.default and not defaults_off:
             column_str = self.add_default_values(column_str, column)
 
         return column_str
@@ -88,9 +82,7 @@ class ModelGenerator:
         *args,
         **kwargs,
     ) -> str:
-        model = ""
-        # mean one model one table
-        model += "\n\n"
+        model = "" + "\n\n"
         model += (
             pt.pydantic_class.format(
                 class_name=create_class_name(table.name, singular, exceptions),
@@ -111,10 +103,8 @@ class ModelGenerator:
         if self.datetime_import:
             header += pt.datetime_import + "\n"
         if self.typing_imports:
-            _imports = list(self.typing_imports)
-            _imports.sort()
+            _imports = sorted(self.typing_imports)
             header += pt.typing_imports.format(typing_types=", ".join(_imports)) + "\n"
-        self.imports = list(self.imports)
-        self.imports.sort()
+        self.imports = sorted(self.imports)
         header += pt.pydantic_imports.format(imports=", ".join(self.imports))
         return header

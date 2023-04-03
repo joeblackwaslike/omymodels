@@ -49,7 +49,7 @@ def setup_column_attributes(
                     templates,
                 )
     # keyword named args
-    if column_data.type.lower() == "serial" or column_data.type.lower() == "bigserial":
+    if column_data.type.lower() in ["serial", "bigserial"]:
         column += templates.autoincrement
     if column_data.references:
         column = add_reference_to_the_column(

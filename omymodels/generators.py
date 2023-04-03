@@ -22,17 +22,16 @@ supported_models = list(models.keys())
 
 
 def get_model(models_type: str) -> ModuleType:
-    model = models.get(models_type)
-    return model
+    return models.get(models_type)
 
 
 def get_generator_by_type(models_type: str):
-    model = get_model(models_type)
-    if not model:
+    if model := get_model(models_type):
+        return getattr(model, "ModelGenerator")()
+    else:
         raise ValueError(
             f"Unsupported models type {models_type}. Possible variants: {supported_models}"
         )
-    return getattr(model, "ModelGenerator")()
 
 
 def render_jinja2_template(models_type: str, models: str, headers: str) -> str:
